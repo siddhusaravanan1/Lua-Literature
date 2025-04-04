@@ -11,6 +11,7 @@ local cardImages = {}
 local hand = {}
 local setCards = {}
 local firstHandSetValues = {2, 3, 4, 5, 6, 7}
+local opponentHand = {}
 
 local canRunAway = false
 local fillHand = false
@@ -52,7 +53,7 @@ end
 
 function pickCards()
     local xOffset = 150
-    local yOffset = 150
+    local yOffset = 300
     local spacing = 50
     local card
     for i = 1, 10 do
@@ -71,12 +72,33 @@ function pickCards()
     end
 end
 
+function setOpponentHand()
+    local xOffset = 150
+    local yOffset = 150
+    local spacing = 50
+    local card
+    for i = 1, 10 do
+        card = table.remove(deck)
+        card.x = xOffset
+        card.y = yOffset
+        card.originalX = xOffset
+        card.originalY = yOffset
+        card.width = 50
+        card.height = 150
+        card.xText = card.originalX + 5
+        card.yText = card.originalY - 15
+        table.insert(opponentHand, card)
+        xOffset = xOffset + spacing
+        table.remove(card)
+    end
+end
+
 function callCard()
     local cardCheck = "2diamonds"
-    for i, card in ipairs(deck) do
+    for i, card in ipairs(opponentHand) do
         if card.name == cardCheck then
             card.x = 150 + (#hand * 50)
-            card.y = 150
+            card.y = 300
             card.originalX = card.x
             card.originalY = card.y
             card.width = 50
@@ -85,7 +107,7 @@ function callCard()
             card.yText = card.y - 15
 
             table.insert(hand, card)
-            table.remove(deck, i)
+            table.remove(opponentHand, i)
 
             print("Card added to hand:", card.name)
             return
@@ -147,7 +169,7 @@ function showSetCard()
     end
     if not isEmpty then
         local xOffset = 200
-        local yOffset = 300
+        local yOffset = 400
         local spacing = 50
         for i, card in ipairs(setCards) do
             card.x = xOffset
@@ -165,13 +187,24 @@ end
 
 function runAway()
     canRunAway = false
-    for i = 1, 4 do
-        table.insert(deck, table.remove(hand))
-        shuffleDeck()
+
+    for i = #hand, 1, -1 do
+        local card = hand[i]
+        table.insert(deck, card)
+        table.remove(hand, i)
     end
+    for i = #opponentHand, 1, -1 do
+        local card = opponentHand[i]
+        table.insert(deck, card)
+        table.remove(opponentHand, i)
+    end
+
+    shuffleDeck()
     fillHand = true
+
     if fillHand then
         pickCards()
+        setOpponentHand()
     end
 end
 
@@ -181,6 +214,7 @@ function love.load()
     createDeck()
     shuffleDeck()
     pickCards()
+    setOpponentHand()
 end
 
 function love.update(dt)
@@ -196,18 +230,22 @@ function love.update(dt)
         draggingCard.x = mouseX - offsetX
         draggingCard.y = mouseY - offsetY
     end
-    if love.keyboard.isDown('c') and not dragginPresent then
+    if love.keyboard.isDown('2') and not dragginPresent then
         callCard()
     end
 end
 
 function love.draw()
-    local yOffset = 20
     for i, card in ipairs(hand) do
         local cardImage = cardImages[card.name]
         love.graphics.draw(cardImage, card.x, card.y, nil, 3, 3)
         love.graphics.print(card.value, card.xText, card.yText)
         love.graphics.print("setCard Index: " .. #setCards, 10, 25)
+    end
+    for i, card in ipairs(opponentHand) do
+        local cardImage = cardImages[card.name]
+        love.graphics.draw(cardImage, card.x, card.y, nil, 3, 3)
+        love.graphics.print(card.value, card.xText, card.yText)
     end
     for i, card in ipairs(setCards) do
         local cardImage = cardImages[card.name]
