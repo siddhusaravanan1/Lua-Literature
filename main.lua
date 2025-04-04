@@ -8,15 +8,18 @@ local cardValues = {
 
 local deck = {}
 local cardImages = {}
-local randomCards = {}
-local distance = {}
+local hand = {}
+local setCards = {}
+local firstHandSetValues = {2, 3, 4, 5, 6, 7}
 
 local canRunAway = false
 local fillHand = false
+local dragginPresent = false
 
 local draggingCard = nil
 
 local offsetX, offsetY = 0, 0
+local setValue = 0
 love.graphics.setDefaultFilter("nearest", "nearest")
 
 function loadCardImages()
@@ -48,31 +51,99 @@ function shuffleDeck()
 end
 
 function pickCards()
-    local xOffset = 75
+    local xOffset = 150
     local yOffset = 150
-    local spacing = 100
+    local spacing = 50
     local card
-    for i = 1, 4 do
+    for i = 1, 10 do
         card = table.remove(deck)
         card.x = xOffset
         card.y = yOffset
         card.originalX = xOffset
         card.originalY = yOffset
-        card.width = 105
+        card.width = 50
         card.height = 150
         card.xText = card.originalX + 5
         card.yText = card.originalY - 15
-        table.insert(randomCards, card)
+        table.insert(hand, card)
         xOffset = xOffset + spacing
         table.remove(card)
     end
+end
+function setCheck(value, list)
+    for _, v in ipairs(list) do
+        if value == v then
+            return true
+        end
+    end
+    return false
+end
+function setDrop()
+    local cardCheck = "diamonds"
+    if dragginPresent then
+        if draggingCard.y > 400 and string.find(draggingCard.name, cardCheck, 1, true) then
+            setValue = draggingCard.value
+        end
+    end
+end
 
+function setCardManagement()
+    local cardCheck = "diamonds"
+    if dragginPresent then
+        for i, card in ipairs(hand) do
+            if draggingCard.y > 400 and string.find(draggingCard.name, cardCheck, 1, true) and setCheck(draggingCard.value, firstHandSetValues)then
+                if card == draggingCard then
+                    local oldX, oldY = draggingCard.originalX, draggingCard.originalY
+                    table.insert(setCards, card)
+                    table.remove(hand, i)
+                    local newCard = table.remove(deck)
+                    if newCard then
+                        newCard.x = oldX
+                        newCard.y = oldY
+                        newCard.originalX = oldX
+                        newCard.originalY = oldY
+                        newCard.width = 50
+                        newCard.height = 150
+                        newCard.xText = oldX + 5
+                        newCard.yText = oldY - 15
+                        table.insert(hand, i, newCard)
+                    end
+                    showSetCard()
+                break
+                end
+            end
+        end
+    end
+end
+
+function showSetCard()
+    local isEmpty = true
+    for _ in pairs(setCards) do
+        isEmpty = false
+        break
+    end
+    if not isEmpty then
+        local xOffset = 200
+        local yOffset = 300
+        local spacing = 50
+        for i, card in ipairs(setCards) do
+            card.x = xOffset
+            card.y = yOffset
+            card.originalX = xOffset
+            card.originalY = yOffset
+            card.width = 50
+            card.height = 150
+            card.xText = card.originalX + 5
+            card.yText = card.originalY - 15
+            xOffset = xOffset + spacing
+        end
+    end
 end
 
 function runAway()
     canRunAway = false
     for i = 1, 4 do
-        table.insert(deck, table.remove(randomCards))
+        table.insert(deck, table.remove(hand))
         shuffleDeck()
     end
     fillHand = true
@@ -86,7 +157,7 @@ function love.load()
     loadCardImages()
     createDeck()
     shuffleDeck()
-   pickCards()
+    pickCards()
 end
 
 function love.update(dt)
@@ -106,22 +177,24 @@ end
 
 function love.draw()
     local yOffset = 20
-    for i, card in ipairs(randomCards) do
+    for i, card in ipairs(hand) do
+        local cardImage = cardImages[card.name]
+        love.graphics.draw(cardImage, card.x, card.y, nil, 3, 3)
+        love.graphics.print(card.value, card.xText, card.yText)
+        love.graphics.print("setCard Index: " .. #setCards, 10, 25)
+    end
+    for i, card in ipairs(setCards) do
         local cardImage = cardImages[card.name]
         love.graphics.draw(cardImage, card.x, card.y, nil, 3, 3)
         love.graphics.print(card.value, card.xText, card.yText)
     end
-    if draggingCard then
-        for i, distances in ipairs(distance) do
-            love.graphics.print('distance = ' .. distances , 10, yOffset)
-            yOffset = yOffset + 10
-        end
-    end
+    love.graphics.print(setValue, 10, 10)
 end
 
 function love.mousepressed(x, y, button)
     if button == 1 then
-        for i, card in ipairs(randomCards) do
+        dragginPresent = true
+        for i, card in ipairs(hand) do
             if x >= card.x and x <= card.x + card.width and y >= card.y and y <= card.y + card.height then
                 draggingCard = card
                 offsetX = x - card.x
@@ -133,10 +206,11 @@ function love.mousepressed(x, y, button)
 end
 function love.mousereleased(x, y, button)
     if button == 1 and draggingCard then
+        setDrop()
+        setCardManagement()
+        dragginPresent = false
         draggingCard.x = draggingCard.originalX
         draggingCard.y = draggingCard.originalY
         draggingCard = nil
-        draggingCard = nil
-        
     end
 end
