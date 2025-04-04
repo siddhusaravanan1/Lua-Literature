@@ -70,6 +70,29 @@ function pickCards()
         table.remove(card)
     end
 end
+
+function callCard()
+    local cardCheck = "2diamonds"
+    for i, card in ipairs(deck) do
+        if card.name == cardCheck then
+            card.x = 150 + (#hand * 50)
+            card.y = 150
+            card.originalX = card.x
+            card.originalY = card.y
+            card.width = 50
+            card.height = 150
+            card.xText = card.x + 5
+            card.yText = card.y - 15
+
+            table.insert(hand, card)
+            table.remove(deck, i)
+
+            print("Card added to hand:", card.name)
+            return
+        end
+    end
+end
+
 function setCheck(value, list)
     for _, v in ipairs(list) do
         if value == v then
@@ -91,7 +114,7 @@ function setCardManagement()
     local cardCheck = "diamonds"
     if dragginPresent then
         for i, card in ipairs(hand) do
-            if draggingCard.y > 400 and string.find(draggingCard.name, cardCheck, 1, true) and setCheck(draggingCard.value, firstHandSetValues)then
+            if draggingCard.y > 400 and string.find(draggingCard.name, cardCheck, 1, true) and setCheck(draggingCard.value, firstHandSetValues) then
                 if card == draggingCard then
                     local oldX, oldY = draggingCard.originalX, draggingCard.originalY
                     table.insert(setCards, card)
@@ -172,6 +195,9 @@ function love.update(dt)
         local mouseX, mouseY = love.mouse.getPosition()
         draggingCard.x = mouseX - offsetX
         draggingCard.y = mouseY - offsetY
+    end
+    if love.keyboard.isDown('c') and not dragginPresent then
+        callCard()
     end
 end
 
