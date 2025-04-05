@@ -6,32 +6,56 @@ local cardValues = {
     ["8"] = 8, ["9"] = 9, ["10"] = 10, ["J"] = 11, ["Q"] = 12, ["K"] = 13, ["A"] = 14
 }
 
+local keyValues = {
+    ["2"] = "2", ["3"] = "3", ["4"] = "4", ["5"] = "5", ["6"] ="6", ["7"] = "7",
+    ["8"] = "8", ["9"] = "9", [","] = "10", ["j"] = "J", ["q"] = "Q", ["k"] = "K", ["a"] = "A"
+}
+
 local deck = {}
+local selectDeck = {}
 local cardImages = {}
+local deckImages = {}
 local hand = {}
 local setCards = {}
 local firstHandSetValues = {2, 3, 4, 5, 6, 7}
 local opponentHand = {}
 
+local selectedDeck = 0
+
 local canRunAway = false
 local fillHand = false
 local dragginPresent = false
+local callTurn = true
 
 local draggingCard = nil
 
 local offsetX, offsetY = 0, 0
 local setValue = 0
+local cardCheck = 0
 love.graphics.setDefaultFilter("nearest", "nearest")
 
 function loadCardImages()
     for _, suit in ipairs(suits) do
         for _, rank in ipairs(ranks) do
-            local cardName = rank .. suit 
+            local cardName = rank .. suit
             cardImages[cardName] = love.graphics.newImage("sprites/cardImages/" .. cardName .. ".png")
         end
     end
 end
 
+function loadDeckImages()
+    for _, suit in ipairs(suits) do
+        local cardName = suit
+        deckImages[cardName] = love.graphics.newImage("sprites/deckImages/" .. cardName .. ".png")
+    end
+end
+
+function createSelectedDeck()
+    for _, suit in ipairs(suits) do
+        local cardName = suit
+        table.insert(selectDeck, {name = cardName})
+    end
+end
 function createDeck()
     for _, suit in ipairs(suits) do
         for _, rank in ipairs(ranks) do
@@ -94,7 +118,6 @@ function setOpponentHand()
 end
 
 function callCard()
-    local cardCheck = "2diamonds"
     for i, card in ipairs(opponentHand) do
         if card.name == cardCheck then
             card.x = 150 + (#hand * 50)
@@ -111,6 +134,9 @@ function callCard()
 
             print("Card added to hand:", card.name)
             return
+        else
+            print("Card not present")
+            callTurn = false
         end
     end
 end
@@ -184,15 +210,25 @@ function showSetCard()
         end
     end
 end
+function showDeckCard()
+    local Xoffset = 150
+    local Yoffset = 50
+    local spacing = 150
+    local card
+    for i = 1, 4 do
+        card = selectDeck[i]
+        card.x = Xoffset
+        card.y = Yoffset
+        card.originalX = Xoffset
+        card.originalY = Yoffset
+        card.width = 50
+        card.height = 150
+        Xoffset = Xoffset + spacing
+    end
+end
 
 function runAway()
     canRunAway = false
-
-    for i = #hand, 1, -1 do
-        local card = hand[i]
-        table.insert(deck, card)
-        table.remove(hand, i)
-    end
     for i = #opponentHand, 1, -1 do
         local card = opponentHand[i]
         table.insert(deck, card)
@@ -203,7 +239,6 @@ function runAway()
     fillHand = true
 
     if fillHand then
-        pickCards()
         setOpponentHand()
     end
 end
@@ -211,7 +246,10 @@ end
 function love.load()
     math.randomseed(os.time())
     loadCardImages()
+    loadDeckImages()
+    createSelectedDeck()
     createDeck()
+    showDeckCard()
     shuffleDeck()
     pickCards()
     setOpponentHand()
@@ -230,8 +268,11 @@ function love.update(dt)
         draggingCard.x = mouseX - offsetX
         draggingCard.y = mouseY - offsetY
     end
-    if love.keyboard.isDown('2') and not dragginPresent then
-        callCard()
+    for key, value in pairs(keyValues) do
+        if love.keyboard.isDown(key) and not dragginPresent then
+            cardCheck = value .. selectedDeck
+            callCard()
+        end
     end
 end
 
@@ -247,12 +288,18 @@ function love.draw()
         love.graphics.draw(cardImage, card.x, card.y, nil, 3, 3)
         love.graphics.print(card.value, card.xText, card.yText)
     end
+    for i, card in ipairs(selectDeck) do
+        local cardImage = deckImages[card.name]
+        love.graphics.draw(cardImage, card.x, card.y, nil, 2.5, 2.5)
+    end
     for i, card in ipairs(setCards) do
         local cardImage = cardImages[card.name]
         love.graphics.draw(cardImage, card.x, card.y, nil, 3, 3)
         love.graphics.print(card.value, card.xText, card.yText)
     end
     love.graphics.print(setValue, 10, 10)
+    love.graphics.print(cardCheck, 10, 40)
+
 end
 
 function love.mousepressed(x, y, button)
@@ -263,6 +310,13 @@ function love.mousepressed(x, y, button)
                 draggingCard = card
                 offsetX = x - card.x
                 offsetY = y - card.y
+                break
+            end
+        end
+        for i, card in ipairs(selectDeck) do
+            if x >= card.x and x <= card.x + card.width and y >= card.y and y <= card.y + card.height then
+                selectedDeck = card.name
+                dragginPresent = false
                 break
             end
         end
