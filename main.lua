@@ -258,6 +258,7 @@ end
 function love.update(dt)
     if love.keyboard.isDown('s') and canRunAway then
         runAway()
+        callTurn =true
         print("working")
     end
     if love.keyboard.isDown('r') and not canRunAway then
@@ -269,7 +270,7 @@ function love.update(dt)
         draggingCard.y = mouseY - offsetY
     end
     for key, value in pairs(keyValues) do
-        if love.keyboard.isDown(key) and not dragginPresent then
+        if love.keyboard.isDown(key) and not dragginPresent and callTurn then
             cardCheck = value .. selectedDeck
             callCard()
         end
